@@ -1,0 +1,42 @@
+.busca {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.busca__campo {
+  width: 100%;
+}
+
+.mapa {
+  height: 420px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container);
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.mapa-aviso {
+  margin: 0.75rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.mapa-aviso--erro {
+  color: var(--mat-sys-error);
+}
+
+// Estilo de mat-hint para o endereço do reverse geocode (skill ux-curazi).
+.endereco {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 900px) {
+  .mapa {
+    height: 320px;
+  }
+}

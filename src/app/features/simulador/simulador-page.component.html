@@ -9,14 +9,8 @@
 
 <main class="container">
   <section id="localizacao" class="secao" aria-labelledby="titulo-localizacao">
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <h2 mat-card-title id="titulo-localizacao">1. Aponte o telhado do imóvel em Maceió</h2>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="secao__placeholder">O mapa para seleção do telhado será exibido aqui.</p>
-      </mat-card-content>
-    </mat-card>
+    <h2 id="titulo-localizacao">1. Aponte o telhado do imóvel em Maceió</h2>
+    <app-mapa-localizacao (coordenada)="coordenada.set($event)" />
   </section>
 
   <section id="conta" class="secao" aria-labelledby="titulo-conta">

@@ -1,0 +1,63 @@
+<mat-card>
+  <mat-card-content>
+    <!-- Evento nativo: sem NgForm/FormGroup no form, (ngSubmit) não dispararia. -->
+    <form class="busca" (submit)="$event.preventDefault(); buscarEndereco()">
+      <mat-form-field appearance="outline" class="busca__campo">
+        <mat-label>Buscar endereço ou CEP em Maceió</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="street-address"
+          [formControl]="campoBusca"
+          placeholder="Ex.: Av. Álvaro Otacílio, Ponta Verde"
+        />
+        <button
+          matSuffix
+          mat-icon-button
+          type="submit"
+          aria-label="Buscar endereço"
+          [disabled]="estadoMapa() !== 'pronto' || buscando()"
+        >
+          <mat-icon>search</mat-icon>
+        </button>
+        @if (campoBusca.hasError('naoEncontrado')) {
+          <mat-error>Endereço não encontrado</mat-error>
+        }
+        <mat-hint>Depois de encontrar, clique sobre o telhado para posicionar o pino.</mat-hint>
+      </mat-form-field>
+    </form>
+
+    <div
+      #containerMapa
+      class="mapa"
+      role="application"
+      tabindex="-1"
+      aria-label="Mapa de Maceió. Clique sobre o telhado do imóvel para posicionar o pino."
+    ></div>
+
+    @if (estadoMapa() === 'carregando') {
+      <p class="mapa-aviso">Carregando o mapa…</p>
+    } @else if (estadoMapa() === 'erro') {
+      <p class="mapa-aviso mapa-aviso--erro" role="alert">
+        Não foi possível carregar o mapa. Verifique sua conexão e recarregue a página.
+      </p>
+    }
+
+    <p class="endereco" aria-live="polite">
+      @switch (estadoEndereco()) {
+        @case ('buscando') {
+          Buscando endereço…
+        }
+        @case ('encontrado') {
+          Endereço aproximado: {{ enderecoAproximado() }}
+        }
+        @case ('indisponivel') {
+          Endereço aproximado indisponível para este ponto.
+        }
+        @case ('nenhum') {
+          Nenhum ponto selecionado.
+        }
+      }
+    </p>
+  </mat-card-content>
+</mat-card>

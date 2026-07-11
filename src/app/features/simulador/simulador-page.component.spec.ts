@@ -1,10 +1,19 @@
 import { TestBed } from '@angular/core/testing';
+
+import { GoogleMapsLoaderService } from '../../core/maps/google-maps-loader.service';
 import { SimuladorPageComponent } from './simulador-page.component';
 
 describe('SimuladorPageComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SimuladorPageComponent],
+      providers: [
+        // O mapa fica em "carregando" — os testes da página não carregam o Google real.
+        {
+          provide: GoogleMapsLoaderService,
+          useValue: { carregar: () => new Promise(() => {}) },
+        },
+      ],
     }).compileComponents();
   });
 
