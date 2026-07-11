@@ -7,10 +7,27 @@
         <input
           matInput
           type="text"
-          autocomplete="street-address"
+          autocomplete="off"
           [formControl]="campoBusca"
+          [matAutocomplete]="sugestoesEndereco"
           placeholder="Ex.: Av. Álvaro Otacílio, Ponta Verde"
         />
+        <mat-autocomplete
+          #sugestoesEndereco="matAutocomplete"
+          [displayWith]="exibirSugestao"
+          (optionSelected)="aoSelecionarSugestao($event.option.value)"
+        >
+          @for (predicao of sugestoes(); track predicao.placeId) {
+            <mat-option [value]="predicao">
+              <span class="sugestao__principal">{{
+                predicao.mainText?.text ?? predicao.text.text
+              }}</span>
+              @if (predicao.secondaryText; as secundario) {
+                <span class="sugestao__secundario">{{ secundario.text }}</span>
+              }
+            </mat-option>
+          }
+        </mat-autocomplete>
         <button
           matSuffix
           mat-icon-button

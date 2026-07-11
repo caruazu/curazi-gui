@@ -9,13 +9,16 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { debounceTime } from 'rxjs';
 
 import { GoogleMapsApi, GoogleMapsLoaderService } from '../../core/maps/google-maps-loader.service';
 
@@ -38,6 +41,10 @@ export const BOUNDS_MACEIO: google.maps.LatLngBoundsLiteral = {
 // Google Cloud quando houver estilização própria.
 const MAP_ID = 'CURAZI_MAPA';
 
+/** Padrão de mercado para autocomplete: aguarda a digitação assentar. */
+const DEBOUNCE_BUSCA_MS = 300;
+const MINIMO_CARACTERES_BUSCA = 3;
+
 type EstadoMapa = 'carregando' | 'pronto' | 'erro';
 type EstadoEndereco = 'nenhum' | 'buscando' | 'encontrado' | 'indisponivel';
 
@@ -45,6 +52,7 @@ type EstadoEndereco = 'nenhum' | 'buscando' | 'encontrado' | 'indisponivel';
   selector: 'app-mapa-localizacao',
   imports: [
     ReactiveFormsModule,
+    MatAutocompleteModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -69,18 +77,40 @@ export class MapaLocalizacaoComponent implements AfterViewInit {
   readonly estadoEndereco = signal<EstadoEndereco>('nenhum');
   readonly enderecoAproximado = signal<string | null>(null);
   readonly buscando = signal(false);
+  readonly sugestoes = signal<google.maps.places.PlacePrediction[]>([]);
 
-  readonly campoBusca = new FormControl('', { nonNullable: true });
+  // Enquanto digita o valor é string; ao selecionar uma sugestão o
+  // mat-autocomplete grava o PlacePrediction (exibido via exibirSugestao).
+  readonly campoBusca = new FormControl<string | google.maps.places.PlacePrediction>('', {
+    nonNullable: true,
+  });
 
   private api?: GoogleMapsApi;
   private mapa?: google.maps.Map;
   private geocoder?: google.maps.Geocoder;
   private marcador?: google.maps.marker.AdvancedMarkerElement;
-  // Descarta respostas de reverse geocode que chegam fora de ordem.
+  // Uma sessão de autocomplete vai do primeiro caractere até a seleção;
+  // reusar o token nesse intervalo é o que faz o Google cobrar por sessão.
+  private sessionToken?: google.maps.places.AutocompleteSessionToken;
+  // Descartam respostas assíncronas que chegam fora de ordem.
   private versaoEndereco = 0;
+  private versaoSugestoes = 0;
+
+  constructor() {
+    this.campoBusca.valueChanges
+      .pipe(debounceTime(DEBOUNCE_BUSCA_MS), takeUntilDestroyed())
+      .subscribe((termo) => void this.buscarSugestoes(termo));
+  }
 
   ngAfterViewInit(): void {
     void this.iniciarMapa();
+  }
+
+  exibirSugestao(valor: string | google.maps.places.PlacePrediction | null): string {
+    if (valor === null || typeof valor === 'string') {
+      return valor ?? '';
+    }
+    return valor.text.text;
   }
 
   private async iniciarMapa(): Promise<void> {
@@ -152,8 +182,56 @@ export class MapaLocalizacaoComponent implements AfterViewInit {
     });
   }
 
+  private async buscarSugestoes(
+    valor: string | google.maps.places.PlacePrediction,
+  ): Promise<void> {
+    // Valor não-string = sugestão recém-selecionada; nada a buscar.
+    if (!this.api || typeof valor !== 'string' || valor.trim().length < MINIMO_CARACTERES_BUSCA) {
+      this.sugestoes.set([]);
+      return;
+    }
+    const versao = ++this.versaoSugestoes;
+    this.sessionToken ??= new this.api.AutocompleteSessionToken();
+    let predicoes: google.maps.places.PlacePrediction[] = [];
+    try {
+      const { suggestions } = await this.api.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: valor.trim(),
+        sessionToken: this.sessionToken,
+        locationRestriction: BOUNDS_MACEIO,
+        includedRegionCodes: ['br'],
+      });
+      predicoes = suggestions
+        .map((sugestao) => sugestao.placePrediction)
+        .filter((predicao): predicao is google.maps.places.PlacePrediction => predicao !== null);
+    } catch {
+      predicoes = [];
+    }
+    this.zone.run(() => {
+      if (versao === this.versaoSugestoes) {
+        this.sugestoes.set(predicoes);
+      }
+    });
+  }
+
+  async aoSelecionarSugestao(predicao: google.maps.places.PlacePrediction): Promise<void> {
+    this.sugestoes.set([]);
+    const place = predicao.toPlace();
+    try {
+      // Consome a sessão de autocomplete (o token da busca vai junto).
+      await place.fetchFields({ fields: ['location'] });
+    } catch {
+      this.zone.run(() => this.campoBusca.setErrors({ naoEncontrado: true }));
+      return;
+    } finally {
+      this.sessionToken = undefined;
+    }
+    this.zone.run(() => this.centralizarEm(place.location ?? null));
+  }
+
+  /** Fallback: Enter/lupa sem selecionar sugestão cai no Geocoder. */
   async buscarEndereco(): Promise<void> {
-    const termo = this.campoBusca.value.trim();
+    const valor = this.campoBusca.value;
+    const termo = (typeof valor === 'string' ? valor : valor.text.text).trim();
     if (!termo || this.estadoMapa() !== 'pronto' || this.buscando()) {
       return;
     }
@@ -176,11 +254,19 @@ export class MapaLocalizacaoComponent implements AfterViewInit {
         this.campoBusca.markAsTouched();
         return;
       }
-      // A busca só centraliza — o pino é posicionado pelo clique no telhado.
-      this.mapa!.panTo(localizacao);
-      this.mapa!.setZoom(19);
-      this.containerMapa().nativeElement.focus();
-      this.snackBar.open('Ajuste o pino sobre o telhado', undefined, { duration: 5000 });
+      this.centralizarEm(localizacao);
     });
+  }
+
+  // A busca só centraliza — o pino é posicionado pelo clique no telhado.
+  private centralizarEm(localizacao: google.maps.LatLng | null): void {
+    if (!localizacao) {
+      this.campoBusca.setErrors({ naoEncontrado: true });
+      return;
+    }
+    this.mapa!.panTo(localizacao);
+    this.mapa!.setZoom(19);
+    this.containerMapa().nativeElement.focus();
+    this.snackBar.open('Ajuste o pino sobre o telhado', undefined, { duration: 5000 });
   }
 }

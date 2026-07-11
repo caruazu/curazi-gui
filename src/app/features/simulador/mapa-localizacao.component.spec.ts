@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
@@ -67,10 +67,62 @@ class FakeGeocoder {
   }
 }
 
+class FakeSessionToken {
+  static criados = 0;
+
+  constructor() {
+    FakeSessionToken.criados++;
+  }
+}
+
+class FakeAutocompleteSuggestion {
+  static sugestoes: unknown[] = [];
+  static falhar = false;
+  static chamadas: Record<string, unknown>[] = [];
+
+  static reiniciar(): void {
+    FakeAutocompleteSuggestion.sugestoes = [];
+    FakeAutocompleteSuggestion.falhar = false;
+    FakeAutocompleteSuggestion.chamadas = [];
+    FakeSessionToken.criados = 0;
+  }
+
+  static fetchAutocompleteSuggestions(
+    requisicao: Record<string, unknown>,
+  ): Promise<{ suggestions: unknown[] }> {
+    FakeAutocompleteSuggestion.chamadas.push(requisicao);
+    return FakeAutocompleteSuggestion.falhar
+      ? Promise.reject(new Error('erro'))
+      : Promise.resolve({ suggestions: FakeAutocompleteSuggestion.sugestoes });
+  }
+}
+
+/** Sugestão no formato retornado pela API (suggestion.placePrediction). */
+function fakeSugestao(principal: string, localizacao: unknown) {
+  const place = {
+    location: null as unknown,
+    fetchFields: (_opcoes: unknown) => {
+      place.location = localizacao;
+      return Promise.resolve({ place });
+    },
+  };
+  return {
+    placePrediction: {
+      placeId: `id-${principal}`,
+      mainText: { text: principal },
+      secondaryText: { text: 'Maceió - AL' },
+      text: { text: `${principal}, Maceió - AL` },
+      toPlace: () => place,
+    },
+  };
+}
+
 const FAKE_API = {
   Map: FakeMap,
   AdvancedMarkerElement: FakeMarker,
   Geocoder: FakeGeocoder,
+  AutocompleteSuggestion: FakeAutocompleteSuggestion,
+  AutocompleteSessionToken: FakeSessionToken,
 } as unknown as GoogleMapsApi;
 
 describe('MapaLocalizacaoComponent', () => {
@@ -80,6 +132,7 @@ describe('MapaLocalizacaoComponent', () => {
     FakeMap.instancias = [];
     FakeMarker.instancias = [];
     FakeGeocoder.reiniciar();
+    FakeAutocompleteSuggestion.reiniciar();
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     await TestBed.configureTestingModule({
@@ -99,6 +152,15 @@ describe('MapaLocalizacaoComponent', () => {
     const fixture = TestBed.createComponent(MapaLocalizacaoComponent);
     fixture.detectChanges();
     await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  /** Versão síncrona para testes fakeAsync (debounce do autocomplete). */
+  function criarSync(): ComponentFixture<MapaLocalizacaoComponent> {
+    const fixture = TestBed.createComponent(MapaLocalizacaoComponent);
+    fixture.detectChanges();
+    flushMicrotasks();
     fixture.detectChanges();
     return fixture;
   }
@@ -159,55 +221,150 @@ describe('MapaLocalizacaoComponent', () => {
     );
   });
 
-  it('busca centraliza o mapa com zoom 19 e avisa para ajustar o pino, sem posicionar pino', async () => {
-    const localizacao = { lat: -9.6601, lng: -35.7002 };
-    FakeGeocoder.resultados = [{ geometry: { location: localizacao } }];
-    const fixture = await criar();
+  describe('sugestões de endereço (autocomplete)', () => {
+    function digitar(fixture: ComponentFixture<MapaLocalizacaoComponent>, texto: string) {
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('input');
+      input.focus();
+      input.value = texto;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 
-    fixture.componentInstance.campoBusca.setValue('Ponta Verde, Maceió');
-    await fixture.componentInstance.buscarEndereco();
+    it('busca sugestões após o debounce com restrição a Maceió', fakeAsync(() => {
+      FakeAutocompleteSuggestion.sugestoes = [fakeSugestao('Ponta Verde', {})];
+      const fixture = criarSync();
 
-    const requisicao = FakeGeocoder.chamadas[0];
-    expect(requisicao['address']).toBe('Ponta Verde, Maceió');
-    expect(requisicao['componentRestrictions']).toEqual({ country: 'br' });
-    expect(requisicao['bounds']).toEqual(BOUNDS_MACEIO);
+      digitar(fixture, 'Ponta Verde');
+      expect(FakeAutocompleteSuggestion.chamadas.length).toBe(0);
+      tick(300);
+      flushMicrotasks();
 
-    const mapa = FakeMap.instancias[0];
-    expect(mapa.panTo).toHaveBeenCalledWith(localizacao);
-    expect(mapa.setZoom).toHaveBeenCalledWith(19);
-    expect(snackBar.open).toHaveBeenCalledWith('Ajuste o pino sobre o telhado', undefined, {
-      duration: 5000,
+      expect(FakeAutocompleteSuggestion.chamadas.length).toBe(1);
+      const requisicao = FakeAutocompleteSuggestion.chamadas[0];
+      expect(requisicao['input']).toBe('Ponta Verde');
+      expect(requisicao['locationRestriction']).toEqual(BOUNDS_MACEIO);
+      expect(requisicao['includedRegionCodes']).toEqual(['br']);
+      expect(requisicao['sessionToken']).toBeInstanceOf(FakeSessionToken);
+      expect(fixture.componentInstance.sugestoes().length).toBe(1);
+    }));
+
+    it('não busca com menos de 3 caracteres', fakeAsync(() => {
+      const fixture = criarSync();
+
+      digitar(fixture, 'Po');
+      tick(300);
+      flushMicrotasks();
+
+      expect(FakeAutocompleteSuggestion.chamadas.length).toBe(0);
+      expect(fixture.componentInstance.sugestoes()).toEqual([]);
+    }));
+
+    it('reusa o session token na sessão e renova após a seleção', fakeAsync(() => {
+      FakeAutocompleteSuggestion.sugestoes = [fakeSugestao('Ponta Verde', {})];
+      const fixture = criarSync();
+
+      digitar(fixture, 'Ponta');
+      tick(300);
+      flushMicrotasks();
+      digitar(fixture, 'Ponta Verde');
+      tick(300);
+      flushMicrotasks();
+
+      const chamadas = FakeAutocompleteSuggestion.chamadas;
+      expect(chamadas.length).toBe(2);
+      expect(chamadas[1]['sessionToken']).toBe(chamadas[0]['sessionToken']);
+      expect(FakeSessionToken.criados).toBe(1);
+
+      const predicao = fixture.componentInstance.sugestoes()[0];
+      void fixture.componentInstance.aoSelecionarSugestao(predicao);
+      flushMicrotasks();
+
+      digitar(fixture, 'Outra rua qualquer');
+      tick(300);
+      flushMicrotasks();
+
+      expect(FakeSessionToken.criados).toBe(2);
+      expect(chamadas[2]['sessionToken']).not.toBe(chamadas[0]['sessionToken']);
+    }));
+
+    it('selecionar sugestão pelo DOM centraliza com zoom 19 e avisa, sem posicionar pino', fakeAsync(() => {
+      const localizacao = { lat: -9.6601, lng: -35.7002 };
+      FakeAutocompleteSuggestion.sugestoes = [fakeSugestao('Ponta Verde', localizacao)];
+      const fixture = criarSync();
+
+      digitar(fixture, 'Ponta Verde');
+      tick(300);
+      flushMicrotasks();
+      fixture.detectChanges();
+
+      const opcoes = document.querySelectorAll('mat-option');
+      expect(opcoes.length).toBe(1);
+      expect(opcoes[0].textContent).toContain('Ponta Verde');
+      (opcoes[0] as HTMLElement).click();
+      flushMicrotasks();
+      fixture.detectChanges();
+
+      const mapa = FakeMap.instancias[0];
+      expect(mapa.panTo).toHaveBeenCalledWith(localizacao);
+      expect(mapa.setZoom).toHaveBeenCalledWith(19);
+      expect(snackBar.open).toHaveBeenCalledWith('Ajuste o pino sobre o telhado', undefined, {
+        duration: 5000,
+      });
+      expect(FakeMarker.instancias.length).toBe(0);
+      tick(300); // esvazia o debounce disparado pela escrita da seleção no campo
+    }));
+  });
+
+  describe('fallback de busca pelo Geocoder (Enter/lupa sem seleção)', () => {
+    it('busca centraliza o mapa com zoom 19 e avisa para ajustar o pino, sem posicionar pino', async () => {
+      const localizacao = { lat: -9.6601, lng: -35.7002 };
+      FakeGeocoder.resultados = [{ geometry: { location: localizacao } }];
+      const fixture = await criar();
+
+      fixture.componentInstance.campoBusca.setValue('Ponta Verde, Maceió');
+      await fixture.componentInstance.buscarEndereco();
+
+      const requisicao = FakeGeocoder.chamadas[0];
+      expect(requisicao['address']).toBe('Ponta Verde, Maceió');
+      expect(requisicao['componentRestrictions']).toEqual({ country: 'br' });
+      expect(requisicao['bounds']).toEqual(BOUNDS_MACEIO);
+
+      const mapa = FakeMap.instancias[0];
+      expect(mapa.panTo).toHaveBeenCalledWith(localizacao);
+      expect(mapa.setZoom).toHaveBeenCalledWith(19);
+      expect(snackBar.open).toHaveBeenCalledWith('Ajuste o pino sobre o telhado', undefined, {
+        duration: 5000,
+      });
+      expect(FakeMarker.instancias.length).toBe(0);
     });
-    expect(FakeMarker.instancias.length).toBe(0);
-  });
 
-  it('submeter o formulário pelo DOM dispara a busca', async () => {
-    FakeGeocoder.resultados = [{ geometry: { location: { lat: -9.66, lng: -35.7 } } }];
-    const fixture = await criar();
+    it('submeter o formulário pelo DOM dispara a busca', async () => {
+      FakeGeocoder.resultados = [{ geometry: { location: { lat: -9.66, lng: -35.7 } } }];
+      const fixture = await criar();
 
-    const input: HTMLInputElement = fixture.nativeElement.querySelector('input');
-    input.value = 'Ponta Verde, Maceió';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
-    await fixture.whenStable();
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('input');
+      input.value = 'Ponta Verde, Maceió';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
+      await fixture.whenStable();
 
-    expect(FakeGeocoder.chamadas.length).toBe(1);
-    expect(FakeGeocoder.chamadas[0]['address']).toBe('Ponta Verde, Maceió');
-    expect(FakeMap.instancias[0].setZoom).toHaveBeenCalledWith(19);
-  });
+      expect(FakeGeocoder.chamadas.length).toBe(1);
+      expect(FakeGeocoder.chamadas[0]['address']).toBe('Ponta Verde, Maceió');
+      expect(FakeMap.instancias[0].setZoom).toHaveBeenCalledWith(19);
+    });
 
-  it('busca sem resultado exibe "Endereço não encontrado"', async () => {
-    FakeGeocoder.resultados = [];
-    const fixture = await criar();
+    it('busca sem resultado exibe "Endereço não encontrado"', async () => {
+      FakeGeocoder.resultados = [];
+      const fixture = await criar();
 
-    fixture.componentInstance.campoBusca.setValue('Rua Inexistente 999, Lugar Nenhum');
-    await fixture.componentInstance.buscarEndereco();
-    fixture.detectChanges();
+      fixture.componentInstance.campoBusca.setValue('Rua Inexistente 999, Lugar Nenhum');
+      await fixture.componentInstance.buscarEndereco();
+      fixture.detectChanges();
 
-    expect(fixture.componentInstance.campoBusca.hasError('naoEncontrado')).toBeTrue();
-    expect(fixture.nativeElement.querySelector('mat-error')?.textContent).toContain(
-      'Endereço não encontrado',
-    );
-    expect(FakeMap.instancias[0].panTo).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.campoBusca.hasError('naoEncontrado')).toBeTrue();
+      expect(fixture.nativeElement.querySelector('mat-error')?.textContent).toContain(
+        'Endereço não encontrado',
+      );
+      expect(FakeMap.instancias[0].panTo).not.toHaveBeenCalled();
+    });
   });
 });

@@ -12,6 +12,8 @@ export interface GoogleMapsApi {
   Map: typeof google.maps.Map;
   AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
   Geocoder: typeof google.maps.Geocoder;
+  AutocompleteSuggestion: typeof google.maps.places.AutocompleteSuggestion;
+  AutocompleteSessionToken: typeof google.maps.places.AutocompleteSessionToken;
 }
 
 /** Carrega a biblioteca do Google Maps uma única vez para toda a aplicação. */
@@ -33,18 +35,21 @@ export class GoogleMapsLoaderService {
       v: 'weekly',
       language: 'pt-BR',
       region: 'BR',
-      libraries: ['marker', 'geocoding'],
+      libraries: ['marker', 'geocoding', 'places'],
     });
-    const [maps, marker, geocoding] = await Promise.all([
+    const [maps, marker, geocoding, places] = await Promise.all([
       importLibrary('maps'),
       importLibrary('marker'),
       importLibrary('geocoding'),
+      importLibrary('places'),
     ]);
     this.pronto.set(true);
     return {
       Map: maps.Map,
       AdvancedMarkerElement: marker.AdvancedMarkerElement,
       Geocoder: geocoding.Geocoder,
+      AutocompleteSuggestion: places.AutocompleteSuggestion,
+      AutocompleteSessionToken: places.AutocompleteSessionToken,
     };
   }
 }

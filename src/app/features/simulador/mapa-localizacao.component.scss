@@ -7,6 +7,15 @@
   width: 100%;
 }
 
+.sugestao__principal {
+  margin-right: 0.5rem;
+}
+
+.sugestao__secundario {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
 .mapa {
   height: 420px;
   border-radius: 12px;
