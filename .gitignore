@@ -41,3 +41,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Chaves locais (copiar de keys.example.ts)
+/src/environments/keys.ts

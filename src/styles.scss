@@ -1,40 +1,59 @@
-
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
+// Estilos globais do Curazi. A identidade visual (paleta, tipografia) vem da
+// skill ux-curazi; os componentes usam CSS próprio enxuto sobre estes tokens.
 @use '@angular/material' as mat;
 @use './theme-colors' as theme;
 
+// Tema do Angular Material (CSS variables --mat-sys-*), gerado a partir da
+// paleta da marca em theme-colors.scss.
 html {
-  @include mat.theme((
-    color: (
-      primary: theme.$primary-palette,
-      tertiary: theme.$tertiary-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
+  // Tema claro fixo (sem dark mode nesta fase).
+  color-scheme: light;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: theme.$primary-palette,
+        tertiary: theme.$tertiary-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+// Tokens de design do Curazi (skill ux-curazi).
+:root {
+  --cz-primaria: #1b5e20; // verde-escuro
+  --cz-apoio: #ffb300; // âmbar/solar
+  --cz-fundo: #fafafa;
+  --cz-texto: #212121;
+  --cz-erro: #c62828;
+  --cz-fonte: Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
   margin: 0;
+  background-color: var(--mat-sys-surface, var(--cz-fundo));
+  color: var(--mat-sys-on-surface, var(--cz-texto));
+  font-family: var(--cz-fonte);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
-/* You can add global styles to this file, and also import other style files */
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+h1,
+h2,
+h3 {
+  font-weight: 600;
+}
+
+// Foco visível (acessibilidade mínima do projeto).
+:focus-visible {
+  outline: 3px solid var(--cz-apoio);
+  outline-offset: 2px;
+}

@@ -1,0 +1,107 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+// A toolbar do Material usa surface por padrão; aqui recebe a cor exata da
+// marca (--cz-primaria), não o tom 40 derivado do tema.
+.cabecalho__toolbar {
+  --mat-toolbar-container-background-color: var(--cz-primaria);
+  --mat-toolbar-container-text-color: #fff;
+  height: auto;
+  border-bottom: 4px solid var(--cz-apoio);
+}
+
+.cabecalho__conteudo {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.cabecalho__logo {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.cabecalho__tagline {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  white-space: normal;
+  opacity: 0.9;
+}
+
+main {
+  flex: 1;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.secao {
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--mat-sys-primary);
+  }
+
+  mat-card-content {
+    padding-top: 0.75rem;
+  }
+}
+
+.secao__placeholder {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.rodape {
+  background: var(--mat-sys-inverse-surface);
+  color: var(--mat-sys-inverse-on-surface);
+  font-size: 0.8125rem;
+
+  p {
+    margin: 0;
+    padding: 1rem 0 0;
+  }
+
+  .container {
+    padding-top: 0;
+    padding-bottom: 1rem;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+.rodape__atribuicao {
+  opacity: 0.8;
+}
+
+@media (max-width: 900px) {
+  .cabecalho__conteudo {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  main {
+    padding-top: 1.25rem;
+  }
+}

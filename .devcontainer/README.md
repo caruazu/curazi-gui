@@ -32,4 +32,5 @@ Os demais arquivos **não mudam** entre projetos.
 - **Atualizações do Claude**: a imagem congela a versão do dia do build; em runtime o Claude se auto-atualiza sozinho. Para o build partir do mais novo: "Rebuild Without Cache".
 - **Cache**: editar `install-stack.sh` invalida a camada e refaz a instalação no próximo rebuild; sem edição, rebuilds são rápidos.
 - **Imagem base**: `base:ubuntu-24.04` (pinada — a tag flutuante `ubuntu` muda as versões do apt sem aviso).
+- **Chrome dos testes**: `install-stack.sh` instala o `chrome-headless-shell` em `/opt/chrome` com symlink em `/usr/local/bin/chrome-headless-shell`; `CHROME_BIN` já vem definido via `containerEnv` no `devcontainer.json`. O `karma.conf.js` do projeto usa o launcher `ChromeHeadlessNoSandbox` (o sandbox do Chrome não funciona em container). `npm test` funciona sem configuração extra.
 - **Regra de ouro**: instalação que depende de root/apt → `install-stack.sh` (build); operação que depende do container rodando (volumes) → `post-create.sh`.
