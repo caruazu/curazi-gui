@@ -14,12 +14,27 @@
   </section>
 
   <section id="conta" class="secao" aria-labelledby="titulo-conta">
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <h2 mat-card-title id="titulo-conta">2. Conta de energia</h2>
-      </mat-card-header>
+    <h2 id="titulo-conta">2. Conta de energia</h2>
+    <mat-card>
       <mat-card-content>
-        <p class="secao__placeholder">O formulário do valor da conta de luz será exibido aqui.</p>
+        <app-formulario-conta (valorConta)="valorConta.set($event)" />
+        <app-painel-avancado />
+        <div class="acoes">
+          <button
+            mat-flat-button
+            class="acoes__simular"
+            [disabled]="!podeSimular()"
+            (click)="simular()"
+          >
+            @if (carregando()) {
+              <mat-progress-spinner diameter="20" mode="indeterminate" aria-label="Simulando" />
+            }
+            Simular economia
+          </button>
+          @if (!coordenada()) {
+            <p class="acoes__dica">Posicione o pino no mapa para habilitar a simulação.</p>
+          }
+        </div>
       </mat-card-content>
     </mat-card>
   </section>

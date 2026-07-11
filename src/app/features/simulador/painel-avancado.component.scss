@@ -1,0 +1,16 @@
+.painel__apoio {
+  margin: 0 0 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.painel__grade {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem 1rem;
+}
+
+@media (max-width: 900px) {
+  .painel__grade {
+    grid-template-columns: 1fr;
+  }
+}

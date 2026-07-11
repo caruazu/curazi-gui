@@ -71,6 +71,26 @@ main {
   color: var(--mat-sys-on-surface-variant);
 }
 
+.acoes {
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.acoes__simular mat-progress-spinner {
+  display: inline-block;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.acoes__dica {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
 .rodape {
   background: var(--mat-sys-inverse-surface);
   color: var(--mat-sys-inverse-on-surface);

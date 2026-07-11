@@ -1,0 +1,106 @@
+<mat-expansion-panel class="painel">
+  <mat-expansion-panel-header>
+    <mat-panel-title>Parâmetros avançados</mat-panel-title>
+  </mat-expansion-panel-header>
+
+  <p class="painel__apoio">Campos para profissionais. Se não souber, deixe em branco.</p>
+
+  <form class="painel__grade" [formGroup]="form">
+    <mat-form-field appearance="outline">
+      <mat-label>Preço do kWh com impostos</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="precoKwhComImpostos"
+        placeholder="padrão do sistema"
+        min="0"
+        step="0.01"
+      />
+      <span matTextSuffix>R$</span>
+      <mat-hint>Confira na sua fatura.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Custo por kWp instalado</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="custoPorKwpInstalado"
+        placeholder="padrão do sistema"
+        min="0"
+      />
+      <span matTextSuffix>R$</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Potência do módulo</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="potenciaModuloWp"
+        placeholder="padrão do sistema"
+        min="0"
+      />
+      <span matTextSuffix>Wp</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo de ligação</mat-label>
+      <mat-select formControlName="tipoLigacao" placeholder="padrão do sistema">
+        <mat-option [value]="null">Padrão do sistema</mat-option>
+        @for (tipo of tiposLigacao; track tipo.valor) {
+          <mat-option [value]="tipo.valor">{{ tipo.rotulo }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Ano de conexão</mat-label>
+      <mat-select formControlName="anoConexao" placeholder="padrão do sistema">
+        <mat-option [value]="null">Padrão do sistema</mat-option>
+        @for (ano of anosConexao; track ano) {
+          <mat-option [value]="ano">{{ ano }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Autoconsumo simultâneo</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="percentualAutoconsumo"
+        placeholder="padrão do sistema"
+        min="0"
+        max="100"
+      />
+      <span matTextSuffix>%</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Inflação tarifária</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="inflacaoTarifariaAnual"
+        placeholder="padrão do sistema"
+        min="0"
+        max="100"
+      />
+      <span matTextSuffix>% a.a.</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Taxa de desconto</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="taxaDescontoAnual"
+        placeholder="padrão do sistema"
+        min="0"
+        max="100"
+      />
+      <span matTextSuffix>% a.a.</span>
+    </mat-form-field>
+  </form>
+</mat-expansion-panel>
