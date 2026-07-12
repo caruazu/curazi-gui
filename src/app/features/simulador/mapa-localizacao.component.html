@@ -2,7 +2,8 @@
   <mat-card-content>
     <!-- Evento nativo: sem NgForm/FormGroup no form, (ngSubmit) não dispararia. -->
     <form class="busca" (submit)="$event.preventDefault(); buscarEndereco()">
-      <mat-form-field appearance="outline" class="busca__campo">
+      <!-- subscriptSizing dynamic: o hint pode quebrar em 2 linhas no mobile. -->
+      <mat-form-field appearance="outline" class="busca__campo" subscriptSizing="dynamic">
         <mat-label>Buscar endereço ou CEP em Maceió</mat-label>
         <input
           matInput

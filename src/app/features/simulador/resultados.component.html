@@ -1,0 +1,84 @@
+@let r = resultado();
+
+@if (r.atendimentoParcial) {
+  <mat-card class="banner-parcial" role="status">
+    <mat-card-content class="banner-parcial__conteudo">
+      <mat-icon aria-hidden="true">warning</mat-icon>
+      <span>
+        O telhado comporta um sistema que atende parte do consumo; valores calculados para o
+        máximo possível.
+      </span>
+    </mat-card-content>
+  </mat-card>
+}
+
+<div class="grade">
+  <mat-card class="cartao cartao--destaque">
+    <mat-card-content>
+      <span class="cartao__rotulo">Custo de implantação</span>
+      <span class="cartao__valor">{{ r.custoImplantacao | currency }}</span>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="cartao">
+    <mat-card-content>
+      <span class="cartao__rotulo">Economia no 1º ano</span>
+      <span class="cartao__valor">{{ r.economiaAnualAno1 | currency }}</span>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="cartao">
+    <mat-card-content>
+      <span class="cartao__rotulo">Retorno do investimento</span>
+      <span class="cartao__valor">{{ r.paybackDescontadoMeses | payback }}</span>
+      <span
+        class="cartao__secundario"
+        matTooltip="O payback simples ignora o valor do dinheiro no tempo; o principal desconta os fluxos futuros pela taxa de desconto."
+        >(simples: {{ r.paybackSimplesMeses | payback }})</span
+      >
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="cartao">
+    <mat-card-content>
+      <span class="cartao__rotulo">Potência do kit</span>
+      <span class="cartao__valor">{{ r.potenciaKitKwp | number: '1.2-2' }} kWp</span>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="cartao">
+    <mat-card-content>
+      <span class="cartao__rotulo">Módulos e área</span>
+      <span class="cartao__valor"
+        >{{ r.quantidadeModulos }} módulos · {{ r.areaNecessariaM2 | number: '1.1-1' }} m²</span
+      >
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="cartao">
+    <mat-card-content>
+      <span class="cartao__rotulo">Produção mensal</span>
+      <span class="cartao__valor">{{ r.producaoMensalKwh | number }} kWh/mês</span>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<mat-card class="grafico-cartao">
+  <mat-card-content>
+    <h3 class="grafico-cartao__titulo">Fluxo de caixa acumulado (25 anos)</h3>
+    <app-grafico-fluxo-caixa
+      [fluxoCaixa]="r.fluxoCaixa"
+      [paybackDescontadoMeses]="r.paybackDescontadoMeses"
+    />
+  </mat-card-content>
+</mat-card>
+
+<div class="rodape-resultados">
+  @for (disclaimer of r.disclaimers; track disclaimer) {
+    <p>{{ disclaimer }}</p>
+  }
+  <p>Análise de telhado: Google Solar API — imagem de {{ r.dataImagem | date: 'dd/MM/yyyy' }}.</p>
+  <p>Tarifa vigência {{ formatarVigencia(r.parametrosUtilizados.vigenciaTarifa) }}.</p>
+</div>
+
+<button mat-stroked-button type="button" (click)="refazer.emit()">Refazer simulação</button>

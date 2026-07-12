@@ -35,19 +35,38 @@
             <p class="acoes__dica">Posicione o pino no mapa para habilitar a simulação.</p>
           }
         </div>
+        @if (erro(); as erroAtual) {
+          <mat-card class="erro-banner" role="alert">
+            <mat-card-content class="erro-banner__conteudo">
+              <mat-icon aria-hidden="true">error</mat-icon>
+              <span>{{ erroAtual.mensagemUsuario }}</span>
+            </mat-card-content>
+          </mat-card>
+        }
       </mat-card-content>
     </mat-card>
   </section>
 
-  <section id="resultados" class="secao" aria-labelledby="titulo-resultados">
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <h2 mat-card-title id="titulo-resultados">3. Resultados</h2>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="secao__placeholder">Os resultados da simulação aparecerão aqui.</p>
-      </mat-card-content>
-    </mat-card>
+  <section id="resultados" class="secao" aria-labelledby="titulo-resultados" tabindex="-1">
+    <h2 id="titulo-resultados">3. Resultados</h2>
+    @if (carregando()) {
+      <mat-progress-bar
+        class="carregando-resultados"
+        mode="indeterminate"
+        aria-label="Calculando a simulação"
+      />
+    }
+    @if (resultado(); as resultadoAtual) {
+      <app-resultados [resultado]="resultadoAtual" (refazer)="refazerSimulacao()" />
+    } @else {
+      <mat-card appearance="outlined">
+        <mat-card-content>
+          <p class="secao__placeholder">
+            Posicione o pino, informe a conta e clique em "Simular economia".
+          </p>
+        </mat-card-content>
+      </mat-card>
+    }
   </section>
 </main>
 

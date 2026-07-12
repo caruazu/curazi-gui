@@ -14,7 +14,7 @@ const VALOR_MAXIMO = 50000;
   selector: 'app-formulario-conta',
   imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MoedaMaskDirective],
   template: `
-    <mat-form-field appearance="outline" class="campo-conta">
+    <mat-form-field appearance="outline" class="campo-conta" subscriptSizing="dynamic">
       <mat-label>Valor médio mensal da conta de luz</mat-label>
       <span matTextPrefix>R$&nbsp;</span>
       <input matInput appMoedaMask [formControl]="controle" placeholder="0,00" />

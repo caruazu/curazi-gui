@@ -1,0 +1,82 @@
+.banner-parcial {
+  margin-bottom: 1rem;
+  // Terciária do tema = âmbar (skill ux-curazi).
+  --mdc-elevated-card-container-color: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+}
+
+.banner-parcial__conteudo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.cartao mat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cartao__rotulo {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.cartao__valor {
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.cartao--destaque {
+  --mdc-elevated-card-container-color: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+
+  .cartao__valor {
+    font-size: 1.75rem;
+  }
+}
+
+.cartao__secundario {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: help;
+}
+
+.grafico-cartao {
+  margin-top: 1rem;
+}
+
+.grafico-cartao__titulo {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.rodape-resultados {
+  margin: 1rem 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+
+  p {
+    margin: 0 0 0.25rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .grade {
+    grid-template-columns: 1fr;
+  }
+}

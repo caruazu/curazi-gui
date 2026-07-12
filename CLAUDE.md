@@ -29,6 +29,19 @@ de terceiros nesta fase).
 - Build: `npm run build`
 - Lint (se configurado): `npm run lint`
 
+## Backend local (desenvolvimento)
+
+- O backend roda em outro devcontainer desta máquina, na porta 8080 (encaminhada ao
+  host). Para o **navegador** (que roda no host), `http://localhost:8080` funciona —
+  é o valor correto de `environment.development.ts`.
+- De dentro **deste** devcontainer, `localhost:8080` NÃO alcança o backend; usar
+  `http://host.docker.internal:8080` (curl, scripts, testes headless) ou um proxy
+  TCP local quando o navegador de teste rodar aqui dentro.
+- O CORS do backend é allowlist estrita: em dev só `http://localhost:4200` — rodar
+  `ng serve` sempre na 4200. Antes do deploy, adicionar o domínio da Vercel à
+  allowlist do backend (atenção aos preview deployments, que têm subdomínio
+  aleatório).
+
 ## Regras do projeto
 
 1. Idioma da interface: **português (pt-BR)**. Moeda com `CurrencyPipe` locale pt-BR
