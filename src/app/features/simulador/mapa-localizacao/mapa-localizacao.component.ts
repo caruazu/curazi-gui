@@ -20,12 +20,48 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 
+import { BoundingBoxGeo, GeometriaTelhado } from '../../../core/api/simulacao.models';
+import {
+  cantosDoPainel,
+  expandirBoundingBox,
+  retanguloDeBoundingBox,
+} from '../../../core/maps/geometria-mapa';
 import { GoogleMapsApi, GoogleMapsLoaderService } from '../../../core/maps/google-maps-loader.service';
 
 export interface Coordenada {
   lat: number;
   lng: number;
 }
+
+/**
+ * Estilo das camadas ilustrativas desenhadas após a simulação. Cores do tema
+ * M3 (primária verde e terciária âmbar — ver theme-colors.scss).
+ */
+export const ESTILO_GEOMETRIA = {
+  /** Escurece o entorno: anel externo = box do edifício expandido; furo = o próprio box. */
+  holofote: {
+    fatorExpansao: 15,
+    fillColor: '#000000',
+    fillOpacity: 0.4,
+  },
+  segmento: {
+    fillColor: '#2a6b2c',
+    fillOpacity: 0.15,
+    strokeColor: '#2a6b2c',
+    strokeOpacity: 0.5,
+    strokeWeight: 1,
+  },
+  painel: {
+    fillColor: '#ffb300',
+    fillOpacity: 0.45,
+    strokeColor: '#604100',
+    strokeOpacity: 1,
+    strokeWeight: 1,
+  },
+} as const;
+
+/** Respiro em px ao enquadrar o edifício com fitBounds. */
+export const PADDING_ENQUADRAMENTO_PX = 48;
 
 export const CENTRO_MACEIO: Coordenada = { lat: -9.6499, lng: -35.7089 };
 
@@ -89,6 +125,8 @@ export class MapaLocalizacaoComponent implements AfterViewInit {
   private mapa?: google.maps.Map;
   private geocoder?: google.maps.Geocoder;
   private marcador?: google.maps.marker.AdvancedMarkerElement;
+  /** Polígonos ilustrativos da última simulação (holofote, segmentos, painéis). */
+  private poligonos: google.maps.Polygon[] = [];
   // Uma sessão de autocomplete vai do primeiro caractere até a seleção;
   // reusar o token nesse intervalo é o que faz o Google cobrar por sessão.
   private sessionToken?: google.maps.places.AutocompleteSessionToken;
@@ -256,6 +294,87 @@ export class MapaLocalizacaoComponent implements AfterViewInit {
       }
       this.centralizarEm(localizacao);
     });
+  }
+
+  /**
+   * Desenha as três camadas ilustrativas da simulação (holofote, segmentos e
+   * painéis). Sem interatividade: todos os polígonos têm clickable: false para
+   * não bloquear o clique que posiciona o pino.
+   */
+  desenharGeometria(geometria: GeometriaTelhado): void {
+    if (!this.api || !this.mapa) {
+      return;
+    }
+    this.limparGeometria();
+
+    if (geometria.boundingBoxEdificio) {
+      const box = geometria.boundingBoxEdificio;
+      const boxExpandido = expandirBoundingBox(box, ESTILO_GEOMETRIA.holofote.fatorExpansao);
+      const anelExterno = retanguloDeBoundingBox(boxExpandido.sw, boxExpandido.ne);
+      // Winding invertido em relação ao externo abre o furo do holofote.
+      const anelInterno = retanguloDeBoundingBox(box.sw, box.ne).reverse();
+      this.poligonos.push(
+        new this.api.Polygon({
+          map: this.mapa,
+          paths: [anelExterno, anelInterno],
+          fillColor: ESTILO_GEOMETRIA.holofote.fillColor,
+          fillOpacity: ESTILO_GEOMETRIA.holofote.fillOpacity,
+          strokeWeight: 0,
+          clickable: false,
+        }),
+      );
+    }
+
+    for (const segmento of geometria.segmentosTelhado) {
+      this.poligonos.push(
+        new this.api.Polygon({
+          map: this.mapa,
+          paths: retanguloDeBoundingBox(segmento.boundingBox.sw, segmento.boundingBox.ne),
+          ...ESTILO_GEOMETRIA.segmento,
+          clickable: false,
+        }),
+      );
+    }
+
+    for (const painel of geometria.paineis) {
+      const segmento = geometria.segmentosTelhado[painel.indiceSegmento];
+      this.poligonos.push(
+        new this.api.Polygon({
+          map: this.mapa,
+          paths: cantosDoPainel(
+            painel.centro,
+            geometria.painelAlturaMetros,
+            geometria.painelLarguraMetros,
+            painel.orientacao,
+            segmento?.azimuteGraus ?? 0,
+            segmento?.inclinacaoGraus ?? 0,
+          ),
+          ...ESTILO_GEOMETRIA.painel,
+          clickable: false,
+        }),
+      );
+    }
+  }
+
+  /** Remove do mapa todos os polígonos da simulação anterior. */
+  limparGeometria(): void {
+    for (const poligono of this.poligonos) {
+      poligono.setMap(null);
+    }
+    this.poligonos = [];
+  }
+
+  /** Enquadra o edifício analisado com um respiro confortável. */
+  enquadrar(boundingBox: BoundingBoxGeo): void {
+    this.mapa?.fitBounds(
+      {
+        north: boundingBox.ne.lat,
+        south: boundingBox.sw.lat,
+        east: boundingBox.ne.lng,
+        west: boundingBox.sw.lng,
+      },
+      PADDING_ENQUADRAMENTO_PX,
+    );
   }
 
   // A busca só centraliza — o pino é posicionado pelo clique no telhado.

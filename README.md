@@ -19,7 +19,8 @@ Em uma única página, o usuário:
 
 1. **Aponta o telhado do imóvel** em um mapa de satélite (Google Maps), com busca por endereço/CEP e autocomplete;
 2. **Informa o valor médio mensal da conta de luz**, podendo refinar parâmetros avançados (preço do kWh, custo por kWp, tipo de ligação, taxa de desconto etc.);
-3. **Recebe a simulação**: custo de implantação, economia no primeiro ano, payback (simples e descontado), potência do kit, quantidade de módulos, área necessária, produção mensal e um gráfico do fluxo de caixa acumulado em 25 anos.
+3. **Recebe a simulação**: custo de implantação, economia no primeiro ano, payback (simples e descontado), potência do kit, quantidade de módulos, área necessária, produção mensal e um gráfico do fluxo de caixa acumulado em 25 anos;
+4. **Vê o sistema desenhado sobre o telhado**: o mapa enquadra o edifício analisado e desenha três camadas ilustrativas — um "holofote" que escurece o entorno, os planos do telhado e os painéis do sistema orçado, posicionados e alinhados conforme a geometria retornada pela API (azimute, inclinação e orientação de cada painel).
 
 Os dados do telhado derivam da **Google Solar API**, consumida exclusivamente pelo backend. 
 A aplicação **não coleta nem persiste dados de usuários** — sem cadastro, sem e-mail e sem analytics de terceiros nesta fase.
@@ -151,6 +152,10 @@ Notas:
 - Valor da conta limitado à faixa de **R$ 50,00 a R$ 50.000,00**;
 - Os resultados são **estimativas** baseadas em análise de imagens; não substituem
   visita técnica nem projeto definitivo;
+- O desenho dos painéis no mapa é **ilustrativo**: usa as dimensões e posições do
+  painel de referência da Google Solar API, não do módulo comercial orçado — o layout
+  real é definido na visita técnica. Respostas sem o bloco `geometria` simplesmente
+  não desenham nada;
 - Sem login, sem histórico, sem PWA e sem SSR nesta fase (decisão de escopo).
 
 **Desempenho, armazenamento e escalabilidade**

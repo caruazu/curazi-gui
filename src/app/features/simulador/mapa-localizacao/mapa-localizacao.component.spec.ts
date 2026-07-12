@@ -3,11 +3,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
 import { GoogleMapsApi, GoogleMapsLoaderService } from '../../../core/maps/google-maps-loader.service';
+import { respostaSimulacaoMock } from '../../../testing/simulacao-response.mock';
 import {
   BOUNDS_MACEIO,
   CENTRO_MACEIO,
   Coordenada,
+  ESTILO_GEOMETRIA,
   MapaLocalizacaoComponent,
+  PADDING_ENQUADRAMENTO_PX,
 } from './mapa-localizacao.component';
 
 // Fakes da API do Google Maps — os testes nunca carregam a biblioteca real.
@@ -18,6 +21,7 @@ class FakeMap {
   static instancias: FakeMap[] = [];
   readonly panTo = jasmine.createSpy('panTo');
   readonly setZoom = jasmine.createSpy('setZoom');
+  readonly fitBounds = jasmine.createSpy('fitBounds');
   private ouvintes = new Map<string, OuvinteClique>();
 
   constructor(
@@ -45,6 +49,20 @@ class FakeMarker {
     this.map = opcoes.map;
     this.position = opcoes.position;
     FakeMarker.instancias.push(this);
+  }
+}
+
+class FakePolygon {
+  static instancias: FakePolygon[] = [];
+  map: unknown;
+
+  constructor(readonly opcoes: Record<string, unknown>) {
+    this.map = opcoes['map'];
+    FakePolygon.instancias.push(this);
+  }
+
+  setMap(mapa: unknown): void {
+    this.map = mapa;
   }
 }
 
@@ -119,6 +137,7 @@ function fakeSugestao(principal: string, localizacao: unknown) {
 
 const FAKE_API = {
   Map: FakeMap,
+  Polygon: FakePolygon,
   AdvancedMarkerElement: FakeMarker,
   Geocoder: FakeGeocoder,
   AutocompleteSuggestion: FakeAutocompleteSuggestion,
@@ -131,6 +150,7 @@ describe('MapaLocalizacaoComponent', () => {
   beforeEach(async () => {
     FakeMap.instancias = [];
     FakeMarker.instancias = [];
+    FakePolygon.instancias = [];
     FakeGeocoder.reiniciar();
     FakeAutocompleteSuggestion.reiniciar();
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
@@ -312,6 +332,115 @@ describe('MapaLocalizacaoComponent', () => {
       expect(FakeMarker.instancias.length).toBe(0);
       tick(300); // esvazia o debounce disparado pela escrita da seleção no campo
     }));
+  });
+
+  describe('geometria da simulação (holofote, segmentos e painéis)', () => {
+    const geometria = () => respostaSimulacaoMock().geometria!;
+
+    it('desenharGeometria cria 1 holofote + 1 por segmento + 1 por painel, todos clickable: false', async () => {
+      const fixture = await criar();
+
+      fixture.componentInstance.desenharGeometria(geometria());
+
+      // Mock: 1 edifício, 1 segmento e 8 painéis (= quantidadeModulos).
+      expect(FakePolygon.instancias.length).toBe(10);
+      for (const poligono of FakePolygon.instancias) {
+        expect(poligono.opcoes['clickable']).toBeFalse();
+        expect(poligono.map).toBe(FakeMap.instancias[0] as unknown);
+      }
+    });
+
+    it('holofote tem dois anéis (externo expandido e furo com winding invertido), sem borda', async () => {
+      const fixture = await criar();
+
+      fixture.componentInstance.desenharGeometria(geometria());
+
+      const holofote = FakePolygon.instancias[0];
+      expect(holofote.opcoes['fillColor']).toBe(ESTILO_GEOMETRIA.holofote.fillColor);
+      expect(holofote.opcoes['fillOpacity']).toBe(ESTILO_GEOMETRIA.holofote.fillOpacity);
+      expect(holofote.opcoes['strokeWeight']).toBe(0);
+
+      const [externo, interno] = holofote.opcoes['paths'] as { lat: number; lng: number }[][];
+      expect(externo.length).toBe(4);
+      expect(interno.length).toBe(4);
+      const box = geometria().boundingBoxEdificio!;
+      // Furo = box do edifício; ordem invertida (nw → ne → se → sw) abre o furo.
+      expect(interno[0]).toEqual({ lat: box.ne.lat, lng: box.sw.lng });
+      expect(interno[3]).toEqual({ lat: box.sw.lat, lng: box.sw.lng });
+      // Anel externo expandido: contém o box com folga.
+      expect(externo[0].lat).toBeLessThan(box.sw.lat);
+      expect(externo[2].lat).toBeGreaterThan(box.ne.lat);
+    });
+
+    it('segmentos e painéis usam as cores e opacidades das constantes', async () => {
+      const fixture = await criar();
+
+      fixture.componentInstance.desenharGeometria(geometria());
+
+      const segmento = FakePolygon.instancias[1];
+      expect(segmento.opcoes['fillColor']).toBe(ESTILO_GEOMETRIA.segmento.fillColor);
+      expect(segmento.opcoes['fillOpacity']).toBe(ESTILO_GEOMETRIA.segmento.fillOpacity);
+      expect(segmento.opcoes['strokeWeight']).toBe(1);
+
+      const painel = FakePolygon.instancias[2];
+      expect(painel.opcoes['fillColor']).toBe(ESTILO_GEOMETRIA.painel.fillColor);
+      expect(painel.opcoes['fillOpacity']).toBe(ESTILO_GEOMETRIA.painel.fillOpacity);
+      expect((painel.opcoes['paths'] as unknown[]).length).toBe(4);
+    });
+
+    it('sem boundingBoxEdificio não desenha holofote, mas mantém segmentos e painéis', async () => {
+      const fixture = await criar();
+
+      fixture.componentInstance.desenharGeometria({ ...geometria(), boundingBoxEdificio: null });
+
+      expect(FakePolygon.instancias.length).toBe(9);
+      expect(FakePolygon.instancias[0].opcoes['fillColor']).toBe(
+        ESTILO_GEOMETRIA.segmento.fillColor,
+      );
+    });
+
+    it('limparGeometria tira todos os polígonos do mapa', async () => {
+      const fixture = await criar();
+      fixture.componentInstance.desenharGeometria(geometria());
+
+      fixture.componentInstance.limparGeometria();
+
+      expect(FakePolygon.instancias.every((p) => p.map === null)).toBeTrue();
+    });
+
+    it('desenhar de novo substitui a geometria anterior em vez de acumular', async () => {
+      const fixture = await criar();
+      fixture.componentInstance.desenharGeometria(geometria());
+
+      fixture.componentInstance.desenharGeometria(geometria());
+
+      const noMapa = FakePolygon.instancias.filter((p) => p.map !== null);
+      expect(FakePolygon.instancias.length).toBe(20);
+      expect(noMapa.length).toBe(10);
+    });
+
+    it('enquadrar chama fitBounds com o box do edifício e padding', async () => {
+      const fixture = await criar();
+      const box = geometria().boundingBoxEdificio!;
+
+      fixture.componentInstance.enquadrar(box);
+
+      expect(FakeMap.instancias[0].fitBounds).toHaveBeenCalledWith(
+        { north: box.ne.lat, south: box.sw.lat, east: box.ne.lng, west: box.sw.lng },
+        PADDING_ENQUADRAMENTO_PX,
+      );
+    });
+
+    it('antes de o mapa carregar, desenharGeometria e limparGeometria não quebram', () => {
+      const fixture = TestBed.createComponent(MapaLocalizacaoComponent);
+      fixture.detectChanges();
+
+      expect(() => {
+        fixture.componentInstance.desenharGeometria(geometria());
+        fixture.componentInstance.limparGeometria();
+      }).not.toThrow();
+      expect(FakePolygon.instancias.length).toBe(0);
+    });
   });
 
   describe('fallback de busca pelo Geocoder (Enter/lupa sem seleção)', () => {

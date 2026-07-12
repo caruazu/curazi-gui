@@ -45,6 +45,51 @@ export interface ParametrosUtilizados {
   vigenciaTarifa: string;
 }
 
+/** Par lat/lng como aparece no bloco `geometria`. */
+export interface PontoGeo {
+  lat: number;
+  lng: number;
+}
+
+/** Retângulo geográfico com cantos `sw`/`ne`. */
+export interface BoundingBoxGeo {
+  sw: PontoGeo;
+  ne: PontoGeo;
+}
+
+export type OrientacaoPainel = 'RETRATO' | 'PAISAGEM';
+
+/** Item de `geometria.segmentosTelhado` — um por plano do telhado. */
+export interface SegmentoTelhado {
+  boundingBox: BoundingBoxGeo;
+  centro: PontoGeo;
+  /** 0° = norte. */
+  azimuteGraus: number;
+  inclinacaoGraus: number;
+}
+
+/** Item de `geometria.paineis` — painel do sistema orçado. */
+export interface PainelGeometria {
+  centro: PontoGeo;
+  orientacao: OrientacaoPainel;
+  /** Posição em `segmentosTelhado`. */
+  indiceSegmento: number;
+}
+
+/**
+ * Geometria crua da Google Solar API para desenhar sobre o mapa — ilustrativa;
+ * o backend não monta polígonos, apenas repassa lat/lng.
+ */
+export interface GeometriaTelhado {
+  /** Pode ser `null` se a Solar API não o informar. */
+  boundingBoxEdificio: BoundingBoxGeo | null;
+  segmentosTelhado: SegmentoTelhado[];
+  paineis: PainelGeometria[];
+  /** Dimensões do painel de referência da Solar API, em metros. */
+  painelAlturaMetros: number;
+  painelLarguraMetros: number;
+}
+
 /** Resposta 200 de POST /api/v1/simulacoes. */
 export interface SimulacaoResponse {
   consumoMensalEstimadoKwh: number;
@@ -60,6 +105,8 @@ export interface SimulacaoResponse {
   vpl25Anos: number;
   economiaTotal25Anos: number;
   fluxoCaixa: FluxoCaixaAnual[];
+  /** Ausente/`null` quando não houver geometria — nesse caso nada é desenhado. */
+  geometria?: GeometriaTelhado | null;
   qualidadeImagem: string;
   /** Data da imagem de satélite (ISO `yyyy-MM-dd`) — exibir junto aos resultados. */
   dataImagem: string;

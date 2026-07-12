@@ -56,6 +56,32 @@ Validações: latitude/longitude obrigatórios e dentro da área atendida (Macei
     { "ano": 0, "fluxo": -15400.00, "acumuladoNominal": -15400.00, "acumuladoDescontado": -15400.00 },
     { "ano": 1, "fluxo": 5514.00,  "acumuladoNominal": -9886.00,  "acumuladoDescontado": -10387.00 }
   ],
+  "geometria": {
+    "boundingBoxEdificio": {
+      "sw": { "lat": -9.650046, "lng": -35.708953 },
+      "ne": { "lat": -9.649908, "lng": -35.708864 }
+    },
+    "segmentosTelhado": [
+      {
+        "boundingBox": {
+          "sw": { "lat": -9.650035, "lng": -35.708947 },
+          "ne": { "lat": -9.649924, "lng": -35.708864 }
+        },
+        "centro": { "lat": -9.649980, "lng": -35.708906 },
+        "azimuteGraus": 94.42892,
+        "inclinacaoGraus": 2.355578
+      }
+    ],
+    "paineis": [
+      {
+        "centro": { "lat": -9.649940, "lng": -35.708871 },
+        "orientacao": "PAISAGEM",
+        "indiceSegmento": 0
+      }
+    ],
+    "painelAlturaMetros": 1.879,
+    "painelLarguraMetros": 1.045
+  },
   "qualidadeImagem": "HIGH",
   "dataImagem": "2024-08-01",
   "fonteDados": "Google Solar API",
@@ -81,6 +107,28 @@ Validações: latitude/longitude obrigatórios e dentro da área atendida (Macei
 `fluxoCaixa` tem 26 itens (ano 0 a 25). Valores numéricos monetários com 2 casas.
 `parametrosUtilizados` sempre ecoa os valores efetivamente usados (para o painel
 avançado do frontend exibir e permitir refinamento).
+
+#### Bloco `geometria`
+
+Geometria crua da Google Solar API (buildingInsights) para o frontend desenhar sobre o
+mapa — o backend não monta polígonos, apenas repassa lat/lng.
+
+- `boundingBoxEdificio`: retângulo do edifício analisado (cantos `sw`/`ne`); pode ser
+  `null` se a Solar API não o informar.
+- `segmentosTelhado[]`: um item por plano do telhado (`roofSegmentStats`), com
+  `boundingBox`, `centro`, `azimuteGraus` (0° = norte) e `inclinacaoGraus`.
+- `paineis[]`: contém **apenas os N primeiros painéis** da lista `solarPanels` da Solar
+  API (ordenada da maior para a menor produção), onde N = `quantidadeModulos` da
+  configuração escolhida pelo dimensionamento — o mapa mostra exatamente o sistema
+  orçado. Em `atendimentoParcial`, N é o máximo do telhado e a lista vem inteira.
+  `orientacao`: `"RETRATO" | "PAISAGEM"` (tradução de PORTRAIT/LANDSCAPE).
+  `indiceSegmento` referencia a posição em `segmentosTelhado`.
+- `painelAlturaMetros`/`painelLarguraMetros`: dimensões do painel **de referência da
+  Solar API** (`panelHeightMeters`/`panelWidthMeters`).
+
+> **Nota**: a geometria é ilustrativa. As dimensões e posições são do painel de
+> referência usado pela Solar API, não do módulo comercial escolhido no orçamento
+> (`potenciaModuloWp`); o layout real é definido na visita técnica.
 
 ### Erros (Problem Details, RFC 9457)
 

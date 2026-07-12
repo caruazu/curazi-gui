@@ -10,6 +10,7 @@ import { environment } from '../../../environments/environment';
  */
 export interface GoogleMapsApi {
   Map: typeof google.maps.Map;
+  Polygon: typeof google.maps.Polygon;
   AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
   Geocoder: typeof google.maps.Geocoder;
   AutocompleteSuggestion: typeof google.maps.places.AutocompleteSuggestion;
@@ -46,6 +47,7 @@ export class GoogleMapsLoaderService {
     this.pronto.set(true);
     return {
       Map: maps.Map,
+      Polygon: maps.Polygon,
       AdvancedMarkerElement: marker.AdvancedMarkerElement,
       Geocoder: geocoding.Geocoder,
       AutocompleteSuggestion: places.AutocompleteSuggestion,

@@ -50,6 +50,7 @@ flowchart TB
         subgraph core["core"]
             simService[SimulacaoService]
             mapsLoader[GoogleMapsLoaderService]
+            geoFns["geometria-mapa<br/>(funções puras)"]
         end
         subgraph shared["shared"]
             pipes[Pipes de formatação]
@@ -75,6 +76,7 @@ flowchart TB
     form -.usa.-> mask
     resultados -.usa.-> pipes
     mapa --> mapsLoader
+    mapa -.usa.-> geoFns
     mapsLoader --> mapsApi
     page --> simService
     simService -->|HTTP JSON| api
@@ -111,8 +113,11 @@ sequenceDiagram
         B-->>S: SimulacaoResponse
         S-->>P: SimulacaoResponse
         P->>PA: preencherCom(parametrosUtilizados)
+        P->>M: desenharGeometria(geometria) + enquadrar(boundingBoxEdificio)
+        M-->>U: holofote, segmentos e painéis sobre o telhado
         P->>R: resultado (input)
         R-->>U: cards + gráfico + disclaimers
+        Note over P,M: novo clique no mapa ou "Refazer simulação"<br/>chama limparGeometria()
     else erro de negócio (422)
         B-->>S: ProblemDetail (RFC 9457)
         S-->>P: ErroSimulacao (mensagem pt-BR)
@@ -155,10 +160,18 @@ classDiagram
     class GoogleMapsApi {
         <<interface>>
         +Map
+        +Polygon
         +AdvancedMarkerElement
         +Geocoder
         +AutocompleteSuggestion
         +AutocompleteSessionToken
+    }
+    class geometriaMapa {
+        <<utility>>
+        +metrosParaGraus(leste, norte, latReferencia)
+        +cantosDoPainel(centro, alturaM, larguraM, orientacao, azimute, inclinacao) PontoGeo[]
+        +retanguloDeBoundingBox(sw, ne) PontoGeo[]
+        +expandirBoundingBox(bb, fator) BoundingBoxGeo
     }
     class SimulacaoRequest {
         <<interface>>
@@ -171,8 +184,17 @@ classDiagram
         +custoImplantacao: number
         +paybackDescontadoMeses: number
         +fluxoCaixa: FluxoCaixaAnual[]
+        +geometria: GeometriaTelhado
         +parametrosUtilizados: ParametrosUtilizados
         +disclaimers: string[]
+    }
+    class GeometriaTelhado {
+        <<interface>>
+        +boundingBoxEdificio: BoundingBoxGeo
+        +segmentosTelhado: SegmentoTelhado[]
+        +paineis: PainelGeometria[]
+        +painelAlturaMetros: number
+        +painelLarguraMetros: number
     }
     class ParametrosAvancados {
         <<interface>>
@@ -194,7 +216,9 @@ classDiagram
     ErroSimulacao --|> Error
     SimulacaoRequest *-- ParametrosAvancados
     SimulacaoResponse *-- FluxoCaixaAnual
+    SimulacaoResponse *-- GeometriaTelhado
     SimulacaoResponse *-- ParametrosUtilizados
+    geometriaMapa ..> GeometriaTelhado : converte em polígonos
     SimulacaoService ..> SimulacaoRequest : recebe
     SimulacaoService ..> SimulacaoResponse : emite
     SimulacaoService ..> ErroSimulacao : lança
@@ -214,11 +238,16 @@ classDiagram
   assíncrono das quatro bibliotecas do Maps atrás de `carregar()`, memoizando a
   `Promise` para carregar uma única vez. A interface `GoogleMapsApi` expõe apenas o
   subconjunto usado, permitindo fakes nos testes (**Dependency Inversion**);
-- **Observer** — o resultado da simulação é exposto como `Observable` (RxJS).
+- **Observer** — o resultado da simulação é exposto como `Observable` (RxJS);
+- **Funções puras** — `geometria-mapa.ts` converte o bloco `geometria` do contrato
+  em vértices lat/lng (projeção do painel inclinado na vista de satélite, rotação
+  pelo azimute, expansão de bounding box), sem nenhuma dependência do Google Maps —
+  toda a matemática é testável em isolamento.
 
 **Interação com as outras camadas:** `SimuladorPageComponent` (features) injeta
 `SimulacaoService` para executar simulações; `MapaLocalizacaoComponent` injeta
-`GoogleMapsLoaderService` para obter os construtores do Maps. Os modelos de
+`GoogleMapsLoaderService` para obter os construtores do Maps e usa as funções de
+`geometria-mapa.ts` para montar os polígonos das camadas ilustrativas. Os modelos de
 `simulacao.models.ts` são os DTOs que circulam entre todas as camadas.
 
 **Classes e tipos da camada:**
@@ -232,6 +261,8 @@ classDiagram
 | `SimulacaoRequest` / `SimulacaoResponse` | DTOs do contrato REST (request/response) |
 | `ParametrosAvancados` / `ParametrosUtilizados` | Parâmetros opcionais enviados e valores efetivos ecoados pelo servidor |
 | `FluxoCaixaAnual` | Item do fluxo de caixa (ano 0 a 25) usado pelo gráfico |
+| `GeometriaTelhado` / `SegmentoTelhado` / `PainelGeometria` | Bloco `geometria` do contrato: bounding box do edifício, planos do telhado (azimute/inclinação) e painéis do sistema orçado |
+| `geometria-mapa.ts` | Funções puras de geometria: metros→graus, cantos do painel projetado/rotacionado, retângulo e expansão de bounding box |
 | `ProblemDetail` / `SlugErroApi` | Corpo de erro RFC 9457 e os slugs conhecidos do contrato |
 
 ### Camada `features/simulador` — componentes de tela
@@ -252,12 +283,17 @@ classDiagram
         +podeSimular: Signal~boolean~
         +simular() void
         +refazerSimulacao() void
+        +aoEscolherCoordenada(coordenada: Coordenada) void
+        -desenharGeometriaNoMapa(resposta: SimulacaoResponse) void
         -tratarErro(erro: ErroSimulacao) void
     }
     class MapaLocalizacaoComponent {
         -mapsLoader: GoogleMapsLoaderService
         +coordenadaSelecionada: OutputRef~Coordenada~
         +buscaControl: FormControl
+        +desenharGeometria(geometria: GeometriaTelhado) void
+        +limparGeometria() void
+        +enquadrar(boundingBox: BoundingBoxGeo) void
     }
     class FormularioContaComponent {
         +controle: FormControl~number~
@@ -292,7 +328,11 @@ classDiagram
   filhos recebem dados por `input()` e emitem eventos por `output()`;
 - **Mediator** — a página orquestra os filhos: coleta a coordenada do mapa e o valor
   do formulário, pede os parâmetros ao painel (`montarParametros()`), dispara a
-  simulação e devolve ao painel os valores efetivos (`preencherCom()`);
+  simulação e devolve ao painel os valores efetivos (`preencherCom()`). Também rege o
+  ciclo de vida da geometria no mapa: no sucesso chama `desenharGeometria()` e
+  `enquadrar()` (fitBounds no edifício, uma vez por simulação); novo clique no mapa ou
+  "Refazer simulação" chama `limparGeometria()`. Respostas sem `geometria` não
+  desenham nada;
 - **Observer / estado reativo** — signals e `computed()` (`podeSimular` deriva de
   coordenada + valor + carregando); outputs propagam eventos filho→pai;
 - **Memento (simplificado)** — a última requisição é guardada para o retry do
@@ -308,7 +348,7 @@ para transitórios). O mapa consome `GoogleMapsLoaderService` (core). O formulá
 | Componente | Função |
 |---|---|
 | `SimuladorPageComponent` | *Container*: detém o estado em signals, orquestra o fluxo e trata erros |
-| `MapaLocalizacaoComponent` | Mapa satélite de Maceió com marker, busca por endereço com autocomplete e reverse geocode |
+| `MapaLocalizacaoComponent` | Mapa satélite de Maceió com marker, busca por endereço com autocomplete, reverse geocode e as camadas ilustrativas pós-simulação (holofote com furo no edifício, planos do telhado e painéis) — polígonos `clickable: false`, estilo centralizado em `ESTILO_GEOMETRIA` |
 | `FormularioContaComponent` | Campo do valor mensal da conta com máscara monetária e validação (R$ 50 a R$ 50.000) |
 | `PainelAvancadoComponent` | Painel expansível de parâmetros opcionais; monta o request e ecoa os valores usados |
 | `ResultadosComponent` | Grade de cards com os indicadores, disclaimers, atribuição ao Google e botão "Refazer" |

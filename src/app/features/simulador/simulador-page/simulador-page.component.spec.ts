@@ -13,6 +13,7 @@ import {
 } from '../../../core/api/simulacao.service';
 import { GoogleMapsLoaderService } from '../../../core/maps/google-maps-loader.service';
 import { respostaSimulacaoMock } from '../../../testing/simulacao-response.mock';
+import { MapaLocalizacaoComponent } from '../mapa-localizacao/mapa-localizacao.component';
 import { PainelAvancadoComponent } from '../painel-avancado/painel-avancado.component';
 import { SimuladorPageComponent } from './simulador-page.component';
 
@@ -210,6 +211,76 @@ describe('SimuladorPageComponent', () => {
       expect(pronto.pagina.coordenada()).toEqual({ lat: -9.649849, lng: -35.708949 });
       expect(pronto.pagina.valorConta()).toBe(500);
       expect(pronto.texto()).toContain('Posicione o pino, informe a conta');
+    });
+  });
+
+  describe('geometria no mapa', () => {
+    function espiarMapa(pronto: ReturnType<typeof criarPagina>) {
+      const mapa = pronto.fixture.debugElement.query((el) => el.name === 'app-mapa-localizacao')
+        .componentInstance as MapaLocalizacaoComponent;
+      return {
+        desenhar: spyOn(mapa, 'desenharGeometria'),
+        enquadrar: spyOn(mapa, 'enquadrar'),
+        limpar: spyOn(mapa, 'limparGeometria'),
+      };
+    }
+
+    it('sucesso desenha a geometria e enquadra o edifício com fitBounds', () => {
+      const pronto = criarPagina();
+      const mapa = espiarMapa(pronto);
+
+      simular(pronto);
+
+      const geometria = respostaSimulacaoMock().geometria!;
+      expect(mapa.desenhar).toHaveBeenCalledWith(geometria);
+      expect(mapa.enquadrar).toHaveBeenCalledWith(geometria.boundingBoxEdificio!);
+    });
+
+    it('resposta sem geometria não desenha nada e não quebra', () => {
+      const semGeometria = { ...respostaSimulacaoMock(), geometria: null };
+      servico.simular.and.returnValue(of(semGeometria));
+      const pronto = criarPagina();
+      const mapa = espiarMapa(pronto);
+
+      simular(pronto);
+
+      expect(pronto.pagina.resultado()).toEqual(semGeometria);
+      expect(mapa.desenhar).not.toHaveBeenCalled();
+      expect(mapa.enquadrar).not.toHaveBeenCalled();
+    });
+
+    it('geometria sem boundingBoxEdificio desenha mas não enquadra', () => {
+      const resposta = respostaSimulacaoMock();
+      resposta.geometria!.boundingBoxEdificio = null;
+      servico.simular.and.returnValue(of(resposta));
+      const pronto = criarPagina();
+      const mapa = espiarMapa(pronto);
+
+      simular(pronto);
+
+      expect(mapa.desenhar).toHaveBeenCalled();
+      expect(mapa.enquadrar).not.toHaveBeenCalled();
+    });
+
+    it('novo ponto no mapa limpa a geometria da simulação anterior', () => {
+      const pronto = criarPagina();
+      const mapa = espiarMapa(pronto);
+      simular(pronto);
+
+      pronto.pagina.aoEscolherCoordenada({ lat: -9.66, lng: -35.7 });
+
+      expect(mapa.limpar).toHaveBeenCalled();
+      expect(pronto.pagina.coordenada()).toEqual({ lat: -9.66, lng: -35.7 });
+    });
+
+    it('"Refazer simulação" limpa a geometria', () => {
+      const pronto = criarPagina();
+      const mapa = espiarMapa(pronto);
+      simular(pronto);
+
+      pronto.pagina.refazerSimulacao();
+
+      expect(mapa.limpar).toHaveBeenCalled();
     });
   });
 

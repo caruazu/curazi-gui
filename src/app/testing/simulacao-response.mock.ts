@@ -2,7 +2,8 @@ import { SimulacaoResponse } from '../core/api/simulacao.models';
 
 /**
  * Resposta completa e fiel a docs/contrato-api.md para uso em testes:
- * fluxoCaixa com 26 itens (ano 0 a 25) e todos os campos presentes.
+ * fluxoCaixa com 26 itens (ano 0 a 25), geometria com paineis.length =
+ * quantidadeModulos e todos os campos presentes.
  */
 export function respostaSimulacaoMock(): SimulacaoResponse {
   const fluxoCaixa = Array.from({ length: 26 }, (_, ano) => ({
@@ -10,6 +11,15 @@ export function respostaSimulacaoMock(): SimulacaoResponse {
     fluxo: ano === 0 ? -15400 : 5514,
     acumuladoNominal: -15400 + 5514 * ano,
     acumuladoDescontado: -15400 + 4500 * ano,
+  }));
+  // 8 painéis (= quantidadeModulos) em duas fileiras dentro do segmento.
+  const paineis = Array.from({ length: 8 }, (_, i) => ({
+    centro: {
+      lat: -9.649995 + Math.floor(i / 4) * 0.00002,
+      lng: -35.708940 + (i % 4) * 0.00002,
+    },
+    orientacao: 'PAISAGEM' as const,
+    indiceSegmento: 0,
   }));
   return {
     consumoMensalEstimadoKwh: 500,
@@ -25,6 +35,26 @@ export function respostaSimulacaoMock(): SimulacaoResponse {
     vpl25Anos: 61234,
     economiaTotal25Anos: 187000,
     fluxoCaixa,
+    geometria: {
+      boundingBoxEdificio: {
+        sw: { lat: -9.650046, lng: -35.708953 },
+        ne: { lat: -9.649908, lng: -35.708864 },
+      },
+      segmentosTelhado: [
+        {
+          boundingBox: {
+            sw: { lat: -9.650035, lng: -35.708947 },
+            ne: { lat: -9.649924, lng: -35.708864 },
+          },
+          centro: { lat: -9.64998, lng: -35.708906 },
+          azimuteGraus: 94.42892,
+          inclinacaoGraus: 2.355578,
+        },
+      ],
+      paineis,
+      painelAlturaMetros: 1.879,
+      painelLarguraMetros: 1.045,
+    },
     qualidadeImagem: 'HIGH',
     dataImagem: '2024-08-01',
     fonteDados: 'Google Solar API',

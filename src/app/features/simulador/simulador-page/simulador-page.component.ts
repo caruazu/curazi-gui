@@ -45,6 +45,7 @@ export class SimuladorPageComponent {
   private readonly simulacaoService = inject(SimulacaoService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly painelAvancado = viewChild.required(PainelAvancadoComponent);
+  private readonly mapa = viewChild.required(MapaLocalizacaoComponent);
 
   /** Ponto do telhado apontado no mapa; obrigatório para simular. */
   readonly coordenada = signal<Coordenada | null>(null);
@@ -79,9 +80,16 @@ export class SimuladorPageComponent {
     this.executarSimulacao(request);
   }
 
+  /** Novo ponto no mapa: a geometria da simulação anterior deixa de valer. */
+  aoEscolherCoordenada(coordenada: Coordenada): void {
+    this.coordenada.set(coordenada);
+    this.mapa().limparGeometria();
+  }
+
   refazerSimulacao(): void {
     this.resultado.set(null);
     this.erro.set(null);
+    this.mapa().limparGeometria();
     this.rolarPara('localizacao');
   }
 
@@ -95,6 +103,7 @@ export class SimuladorPageComponent {
         this.resultado.set(resposta);
         // O painel exibe os valores efetivamente usados, prontos para refinamento.
         this.painelAvancado().preencherCom(resposta.parametrosUtilizados);
+        this.desenharGeometriaNoMapa(resposta);
         // Foco na seção para leitores de tela anunciarem os resultados.
         this.rolarPara('resultados', { focar: true });
       },
@@ -103,6 +112,20 @@ export class SimuladorPageComponent {
         this.tratarErro(erro);
       },
     });
+  }
+
+  /** Resposta sem geometria (campo ausente/null): não desenha nada. */
+  private desenharGeometriaNoMapa(resposta: SimulacaoResponse): void {
+    const geometria = resposta.geometria;
+    if (!geometria) {
+      return;
+    }
+    const mapa = this.mapa();
+    mapa.desenharGeometria(geometria);
+    // fitBounds roda só aqui — não de novo até a próxima simulação.
+    if (geometria.boundingBoxEdificio) {
+      mapa.enquadrar(geometria.boundingBoxEdificio);
+    }
   }
 
   private tratarErro(erro: ErroSimulacao): void {
