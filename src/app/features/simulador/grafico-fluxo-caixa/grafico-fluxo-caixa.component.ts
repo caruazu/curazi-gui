@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
-import { FluxoCaixaAnual } from '../../core/api/simulacao.models';
-import { formatarMoedaCompacta } from '../../shared/moeda-compacta.pipe';
+import { FluxoCaixaAnual } from '../../../core/api/simulacao.models';
+import { formatarMoedaCompacta } from '../../../shared/pipes/moeda-compacta.pipe';
 
 // Cores do tema validadas para daltonismo e contraste (validador da skill dataviz):
 // verde = tom 40 da paleta primária, âmbar = tom 60 da terciária.
@@ -18,22 +18,8 @@ const MOEDA_COMPLETA = new Intl.NumberFormat('pt-BR', { style: 'currency', curre
   selector: 'app-grafico-fluxo-caixa',
   imports: [BaseChartDirective],
   providers: [provideCharts(withDefaultRegisterables())],
-  template: `
-    <figure
-      class="grafico"
-      role="img"
-      aria-label="Fluxo de caixa acumulado, nominal e descontado, do ano 0 ao 25"
-    >
-      <canvas baseChart type="line" [data]="dados()" [options]="opcoes"></canvas>
-    </figure>
-  `,
-  styles: `
-    .grafico {
-      position: relative;
-      height: 320px;
-      margin: 0;
-    }
-  `,
+  templateUrl: './grafico-fluxo-caixa.component.html',
+  styleUrl: './grafico-fluxo-caixa.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GraficoFluxoCaixaComponent {

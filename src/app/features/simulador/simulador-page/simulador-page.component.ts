@@ -8,16 +8,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { SimulacaoRequest, SimulacaoResponse } from '../../core/api/simulacao.models';
+import { SimulacaoRequest, SimulacaoResponse } from '../../../core/api/simulacao.models';
 import {
   ErroSimulacao,
   SimulacaoService,
   SlugErroSimulacao,
-} from '../../core/api/simulacao.service';
-import { Coordenada, MapaLocalizacaoComponent } from './mapa-localizacao.component';
-import { FormularioContaComponent } from './formulario-conta.component';
-import { PainelAvancadoComponent } from './painel-avancado.component';
-import { ResultadosComponent } from './resultados.component';
+} from '../../../core/api/simulacao.service';
+import { Coordenada, MapaLocalizacaoComponent } from '../mapa-localizacao/mapa-localizacao.component';
+import { FormularioContaComponent } from '../formulario-conta/formulario-conta.component';
+import { PainelAvancadoComponent } from '../painel-avancado/painel-avancado.component';
+import { ResultadosComponent } from '../resultados/resultados.component';
 
 /** Erros exibidos em MatSnackBar com retry; os demais viram banner na seção 2. */
 const ERROS_TRANSITORIOS: SlugErroSimulacao[] = ['servico-solar-indisponivel', 'falha-de-rede'];

@@ -20,7 +20,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 
-import { GoogleMapsApi, GoogleMapsLoaderService } from '../../core/maps/google-maps-loader.service';
+import { GoogleMapsApi, GoogleMapsLoaderService } from '../../../core/maps/google-maps-loader.service';
 
 export interface Coordenada {
   lat: number;

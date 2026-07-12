@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
-import { ParametrosUtilizados } from '../../core/api/simulacao.models';
+import { ParametrosUtilizados } from '../../../core/api/simulacao.models';
 import { PainelAvancadoComponent } from './painel-avancado.component';
 
 describe('PainelAvancadoComponent', () => {

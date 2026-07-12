@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { respostaSimulacaoMock } from '../../testing/simulacao-response.mock';
+import { respostaSimulacaoMock } from '../../../testing/simulacao-response.mock';
 import { GraficoFluxoCaixaComponent } from './grafico-fluxo-caixa.component';
 
 describe('GraficoFluxoCaixaComponent', () => {

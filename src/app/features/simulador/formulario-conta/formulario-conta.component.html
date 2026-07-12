@@ -1,0 +1,12 @@
+<mat-form-field appearance="outline" class="campo-conta" subscriptSizing="dynamic">
+  <mat-label>Valor médio mensal da conta de luz</mat-label>
+  <span matTextPrefix>R$&nbsp;</span>
+  <input matInput appMoedaMask [formControl]="controle" placeholder="0,00" />
+  @if (controle.hasError('required')) {
+    <mat-error>Informe o valor médio mensal da conta.</mat-error>
+  } @else if (controle.hasError('min')) {
+    <mat-error>O valor mínimo para simulação é R$ 50,00.</mat-error>
+  } @else if (controle.hasError('max')) {
+    <mat-error>O valor máximo para simulação é R$ 50.000,00.</mat-error>
+  }
+</mat-form-field>

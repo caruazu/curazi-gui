@@ -83,14 +83,16 @@ fundo de erro do tema, ícone `error_outline`. Erros transitórios (503/rede):
 ```
 src/app/
 ├── core/api/        → SimulacaoService (HttpClient) + interfaces do contrato
-├── features/simulador/
-│   ├── simulador-page.component.ts      (orquestra, signals de estado)
-│   ├── mapa-localizacao.component.ts
-│   ├── formulario-conta.component.ts
-│   ├── painel-avancado.component.ts
-│   ├── resultados.component.ts
-│   └── grafico-fluxo-caixa.component.ts
-└── shared/          → pipes (moeda compacta, meses→"X anos e Y meses") e diretiva de máscara monetária
+├── features/simulador/          (uma pasta por componente: .ts, .html, .scss, .spec.ts)
+│   ├── simulador-page/          (orquestra, signals de estado)
+│   ├── mapa-localizacao/
+│   ├── formulario-conta/
+│   ├── painel-avancado/
+│   ├── resultados/
+│   └── grafico-fluxo-caixa/
+└── shared/
+    ├── pipes/       → moeda compacta, meses→"X anos e Y meses"
+    └── directives/  → máscara monetária
 ```
 
 Estado da página em signals: `coordenada`, `valorConta`, `parametrosAvancados`,

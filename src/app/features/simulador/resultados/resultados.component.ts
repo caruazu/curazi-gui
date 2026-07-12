@@ -5,9 +5,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { SimulacaoResponse } from '../../core/api/simulacao.models';
-import { PaybackPipe } from '../../shared/payback.pipe';
-import { GraficoFluxoCaixaComponent } from './grafico-fluxo-caixa.component';
+import { SimulacaoResponse } from '../../../core/api/simulacao.models';
+import { PaybackPipe } from '../../../shared/pipes/payback.pipe';
+import { GraficoFluxoCaixaComponent } from '../grafico-fluxo-caixa/grafico-fluxo-caixa.component';
 
 const MESES_ABREVIADOS = [
   'jan',

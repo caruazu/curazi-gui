@@ -10,10 +10,10 @@ import {
   ErroSimulacao,
   SimulacaoService,
   SlugErroSimulacao,
-} from '../../core/api/simulacao.service';
-import { GoogleMapsLoaderService } from '../../core/maps/google-maps-loader.service';
-import { respostaSimulacaoMock } from '../../testing/simulacao-response.mock';
-import { PainelAvancadoComponent } from './painel-avancado.component';
+} from '../../../core/api/simulacao.service';
+import { GoogleMapsLoaderService } from '../../../core/maps/google-maps-loader.service';
+import { respostaSimulacaoMock } from '../../../testing/simulacao-response.mock';
+import { PainelAvancadoComponent } from '../painel-avancado/painel-avancado.component';
 import { SimuladorPageComponent } from './simulador-page.component';
 
 registerLocaleData(localePt, 'pt-BR');

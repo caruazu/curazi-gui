@@ -4,6 +4,6 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./features/simulador/simulador-page.component').then((m) => m.SimuladorPageComponent),
+      import('./features/simulador/simulador-page/simulador-page.component').then((m) => m.SimuladorPageComponent),
   },
 ];

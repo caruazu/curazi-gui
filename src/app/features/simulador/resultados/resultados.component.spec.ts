@@ -4,8 +4,8 @@ import localePt from '@angular/common/locales/pt';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
-import { SimulacaoResponse } from '../../core/api/simulacao.models';
-import { respostaSimulacaoMock } from '../../testing/simulacao-response.mock';
+import { SimulacaoResponse } from '../../../core/api/simulacao.models';
+import { respostaSimulacaoMock } from '../../../testing/simulacao-response.mock';
 import { ResultadosComponent } from './resultados.component';
 
 registerLocaleData(localePt, 'pt-BR');

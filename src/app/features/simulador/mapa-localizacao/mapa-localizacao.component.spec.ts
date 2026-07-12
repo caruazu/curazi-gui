@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@an
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
-import { GoogleMapsApi, GoogleMapsLoaderService } from '../../core/maps/google-maps-loader.service';
+import { GoogleMapsApi, GoogleMapsLoaderService } from '../../../core/maps/google-maps-loader.service';
 import {
   BOUNDS_MACEIO,
   CENTRO_MACEIO,

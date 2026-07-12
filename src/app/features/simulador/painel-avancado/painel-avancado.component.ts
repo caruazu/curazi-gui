@@ -9,7 +9,7 @@ import {
   ParametrosAvancados,
   ParametrosUtilizados,
   TipoLigacao,
-} from '../../core/api/simulacao.models';
+} from '../../../core/api/simulacao.models';
 
 const ANO_ATUAL = new Date().getFullYear();
 
