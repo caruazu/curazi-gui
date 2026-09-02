@@ -13,7 +13,7 @@
 
 ## Sobre
 
-O **Curazi** é um planejador de custo de implantação de energia solar residencial para **Maceió-AL**, voltado a **pessoa física**. Esta aplicação é a interface web pública do sistema e serve como demo comercial B2B de uma instaladora.
+O **Curazi** é um planejador de custo para implantação de energia solar residencial em **Maceió-AL**, voltado a **pessoa física**. Esta aplicação é a interface web pública do sistema e serve como demo comercial B2B de uma instaladora.
 
 Em uma única página, o usuário:
 
